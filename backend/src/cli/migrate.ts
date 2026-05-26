@@ -23,25 +23,23 @@ async function main() {
     switch (command) {
       case "status":
         const status = await getMigrationStatus();
-        console.log("\n=== Migration Status ===");
-        console.log(status);
-        console.log("========================\n");
+        logger.info("=== Migration Status ===\n" + JSON.stringify(status, null, 2));
         break;
 
       case "up":
-        console.log("\n=== Running Migrations ===");
+        logger.info("=== Running Migrations ===");
         await runMigrations();
-        console.log("=========================\n");
+        logger.info("=== Running Migrations complete ===");
         break;
 
       case "down":
-        console.log("\n=== Rolling Back Migration ===");
+        logger.info("=== Rolling Back Migration ===");
         await rollbackMigration();
-        console.log("==============================\n");
+        logger.info("=== Rolling Back Migration complete ===");
         break;
 
       default:
-        console.log(`
+        logger.info(`
 Migration CLI Tool
 
 Usage:
@@ -65,10 +63,9 @@ Note: Use npm scripts for convenience:
         process.exit(1);
     }
   } catch (error) {
-    logger.error("Migration command failed:", {
+    logger.error("Migration command failed", {
       error: error instanceof Error ? error.message : String(error),
     });
-    console.error("\n❌ Migration failed:", error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
