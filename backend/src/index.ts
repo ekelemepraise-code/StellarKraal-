@@ -375,8 +375,7 @@ app.get(
         await pool.run((server) => server.getHealth());
         rpcReachable = true;
       } catch (error) {
-        const reqLogger = (req as any).logger || logger;
-        reqLogger.warn("RPC health check failed", { error: (error as Error).message });
+        logger.warn("RPC health check failed", { error: (error as Error).message });
       }
 
       const circuitStates = rpcClient.getCircuitStates();

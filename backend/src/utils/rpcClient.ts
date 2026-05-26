@@ -72,18 +72,18 @@ const getHealthBreaker = new CircuitBreaker(
   getHealthBreaker,
 ].forEach((breaker) => {
   breaker.on("open", () => {
-    logger.error(`Circuit breaker opened for ${breaker.name}`, { breaker: breaker.name });
+    logger.error("Circuit breaker opened", { breaker: breaker.name });
     fireAlert(rules.rpcCircuitOpen, `Circuit breaker opened for ${breaker.name}`, {
       breaker: breaker.name,
     });
   });
 
   breaker.on("halfOpen", () => {
-    logger.info(`Circuit breaker half-open for ${breaker.name}`, { breaker: breaker.name });
+    logger.info("Circuit breaker half-open", { breaker: breaker.name });
   });
 
   breaker.on("close", () => {
-    logger.info(`Circuit breaker closed for ${breaker.name}`, { breaker: breaker.name });
+    logger.info("Circuit breaker closed", { breaker: breaker.name });
   });
 
   breaker.on("failure", (error: Error) => {

@@ -23,19 +23,19 @@ async function main() {
     switch (command) {
       case "status":
         const status = await getMigrationStatus();
-        logger.info("=== Migration Status ===\n" + JSON.stringify(status, null, 2));
+        logger.info("Migration Status", { status });
         break;
 
       case "up":
-        logger.info("=== Running Migrations ===");
+        logger.info("Running migrations");
         await runMigrations();
-        logger.info("=== Running Migrations complete ===");
+        logger.info("Migrations complete");
         break;
 
       case "down":
-        logger.info("=== Rolling Back Migration ===");
+        logger.info("Rolling back migration");
         await rollbackMigration();
-        logger.info("=== Rolling Back Migration complete ===");
+        logger.info("Rollback complete");
         break;
 
       default:

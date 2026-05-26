@@ -1,7 +1,8 @@
 # StellarKraal
 
 [![CI](https://img.shields.io/github/actions/workflow/status/teslims2/StellarKraal-/backend-ci.yml?branch=main&label=backend%20CI)](https://github.com/teslims2/StellarKraal-/actions/workflows/backend-ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-pending-lightgrey)](https://github.com/teslims2/StellarKraal-/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/teslims2/StellarKraal-/frontend-ci.yml?branch=main&label=frontend%20CI)](https://github.com/teslims2/StellarKraal-/actions/workflows/frontend-ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-70%25%20min-brightgreen)](https://github.com/teslims2/StellarKraal-/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Project Overview
@@ -98,6 +99,32 @@ npm run dev
 ```bash
 cd contracts/stellarkraal
 cargo test
+```
+
+## Staging Environment
+
+The staging environment mirrors production and is deployed automatically on every merge to `main`.
+
+| Resource | URL |
+|---|---|
+| Frontend | `https://staging.stellarkraal.example.com` |
+| Backend API | `https://api-staging.stellarkraal.example.com` |
+
+Staging uses Stellar **testnet** RPC and a separate contract deployment. The following GitHub Actions secrets must be set under the `staging` environment (Settings → Environments → staging):
+
+| Secret | Description |
+|---|---|
+| `STAGING_RPC_URL` | Soroban testnet RPC endpoint |
+| `STAGING_CONTRACT_ID` | Staging contract deployment ID |
+| `STAGING_API_URL` | Staging backend API base URL |
+| `STAGING_FRONTEND_URL` | Staging frontend URL (for CORS) |
+| `JWT_SECRET` | JWT signing key for staging |
+| `SLACK_WEBHOOK_URL` | Slack webhook for deployment notifications |
+
+To run the staging stack locally:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
 ```
 
 ## Troubleshooting
