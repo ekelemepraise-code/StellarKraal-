@@ -744,6 +744,64 @@ app.delete("/api/collateral/:id", (req: Request, res: Response) => {
   res.json({ deleted: true, id: req.params.id });
 });
 
+// ── v1 collateral CRUD ────────────────────────────────────────────────────────
+
+const v1CollateralSchema = z.object({
+  owner: stellarPublicKeySchema,
+  animal_type: z.string().min(1),
+  count: z.number().int().positive(),
+  appraised_value: z.number().int().positive(),
+});
+
+// POST /api/v1/collateral — register collateral (DB record)
+app.post("/api/v1/collateral", timeoutMiddleware(parseInt(config.TIMEOUT_WRITE_MS, 10)), asyncHandler(async (req: Request, res: Response) => {
+  const validation = v1CollateralSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({ error: "Validation failed", details: validation.error.errors });
+  }
+  const { owner, animal_type, count, appraised_value } = validation.data;
+  const record = insertCollateral({ id: randomUUID(), owner, animal_type, count, appraised_value });
+  res.status(201).json(record);
+}));
+
+// GET /api/v1/collateral — list collateral with optional filters and pagination
+app.get("/api/v1/collateral", asyncHandler(async (req: Request, res: Response) => {
+  const page = req.query.page !== undefined ? Number(req.query.page) : 1;
+  const pageSize = req.query.pageSize !== undefined ? Number(req.query.pageSize) : 20;
+  if (!Number.isInteger(page) || page < 1) {
+    return res.status(400).json({ error: "page must be a positive integer" });
+  }
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+    return res.status(400).json({ error: "pageSize must be between 1 and 100" });
+  }
+  let records = listCollateral();
+  if (req.query.owner) records = records.filter((r) => r.owner === req.query.owner);
+  if (req.query.animal_type) records = records.filter((r) => r.animal_type === req.query.animal_type);
+  const total = records.length;
+  const data = records.slice((page - 1) * pageSize, page * pageSize);
+  res.json({ data, total, page, pageSize });
+}));
+
+// PUT /api/v1/collateral/:id/appraise — update appraised_value
+app.put("/api/v1/collateral/:id/appraise", timeoutMiddleware(parseInt(config.TIMEOUT_WRITE_MS, 10)), asyncHandler(async (req: Request, res: Response) => {
+  const { appraised_value } = req.body;
+  if (typeof appraised_value !== "number" || !Number.isInteger(appraised_value) || appraised_value <= 0) {
+    return res.status(400).json({ error: "appraised_value must be a positive integer" });
+  }
+  const record = getCollateral(req.params.id);
+  if (!record) return res.status(404).json({ error: "Record not found" });
+  record.appraised_value = appraised_value;
+  setAppraisal(req.params.id, appraised_value);
+  res.json(record);
+}));
+
+// DELETE /api/v1/collateral/:id — soft delete
+app.delete("/api/v1/collateral/:id", (req: Request, res: Response) => {
+  const ok = softDeleteCollateral(req.params.id);
+  if (!ok) return res.status(404).json({ error: "Record not found" });
+  res.json({ deleted: true, id: req.params.id });
+});
+
 // GET /api/admin/deleted/loans — list soft-deleted loan records
 app.get("/api/admin/deleted/loans", (req: Request, res: Response) => {
   res.json(listDeletedLoans());
