@@ -11,15 +11,12 @@ interface Props {
 export default function WalletConnect({ onConnect }: Props) {
   const { address, freighterInstalled, connecting, error, connect } = useWallet();
 
-  // Notify parent whenever address changes
   useEffect(() => {
     if (address) onConnect(address);
   }, [address, onConnect]);
 
-  // Still detecting
   if (freighterInstalled === null) return null;
 
-  // Not installed
   if (!freighterInstalled) {
     return (
       <div className="mb-6 rounded-xl border border-brown/30 bg-cream px-4 py-3 text-sm">
@@ -36,16 +33,16 @@ export default function WalletConnect({ onConnect }: Props) {
     );
   }
 
-  // Connected
   if (address) {
     return (
-      <div className={`${colors.status.success.bg} rounded-xl px-4 py-3 mb-6 text-sm font-mono ${colors.status.success.text}`}>
+      <div
+        className={`${colors.status.success.bg} rounded-xl px-4 py-3 mb-6 text-sm font-mono ${colors.status.success.text}`}
+      >
         ✅ {address.slice(0, 8)}…{address.slice(-6)}
       </div>
     );
   }
 
-  // Ready to connect
   return (
     <div className="mb-6">
       <button

@@ -16,17 +16,15 @@ interface Loan {
   createdAt: string;
 }
 
-const STATUS_OPTIONS = ["active", "repaid", "liquidated", "pending"];
+const STATUS_OPTIONS = ['active', 'repaid', 'liquidated', 'pending'];
 const TYPE_OPTIONS: string[] = [];
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function LoanListContent() {
   const searchParams = useSearchParams();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [loading, setLoading] = useState(true);
-  const reduced = useReducedMotion();
-
   useEffect(() => {
     setLoading(true);
     fetch(`${API}/api/loans`)
@@ -36,8 +34,8 @@ function LoanListContent() {
       .finally(() => setLoading(false));
   }, []);
 
-  const q = (searchParams.get("q") ?? "").toLowerCase();
-  const statuses = searchParams.getAll("status");
+  const q = (searchParams.get('q') ?? '').toLowerCase();
+  const statuses = searchParams.getAll('status');
 
   const filtered = loans.filter((loan) => {
     const matchesQuery =

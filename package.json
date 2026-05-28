@@ -15,12 +15,12 @@
   },
   "lint-staged": {
     "backend/src/**/*.ts": [
-      "prettier --write",
-      "eslint --max-warnings 0"
+      "npx prettier --write",
+      "npx eslint --max-warnings 0"
     ],
     "frontend/src/**/*.{ts,tsx}": [
-      "prettier --write",
-      "eslint --max-warnings 0"
+      "npx --prefix frontend prettier --write",
+      "npx --prefix frontend eslint --max-warnings 0"
     ]
   }
 }

@@ -10,16 +10,18 @@ interface Props {
   initialCollateralId?: string;
 }
 
-const ANIMAL_TYPES = ["cattle", "goat", "sheep"];
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const ANIMAL_TYPES = ['cattle', 'goat', 'sheep'];
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function LoanForm({ walletAddress, initialCollateralId }: Props) {
-  const [step, setStep] = useState<"collateral" | "loan">(initialCollateralId ? "loan" : "collateral");
-  const [animalType, setAnimalType] = useState("cattle");
-  const [count, setCount] = useState("");
-  const [appraisedValue, setAppraisedValue] = useState("");
-  const [collateralId, setCollateralId] = useState(initialCollateralId || "");
-  const [loanAmount, setLoanAmount] = useState("");
+  const [step, setStep] = useState<'collateral' | 'loan'>(
+    initialCollateralId ? 'loan' : 'collateral'
+  );
+  const [animalType, setAnimalType] = useState('cattle');
+  const [count, setCount] = useState('');
+  const [appraisedValue, setAppraisedValue] = useState('');
+  const [collateralId, setCollateralId] = useState(initialCollateralId || '');
+  const [loanAmount, setLoanAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -28,8 +30,8 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
     setStatus(null);
     try {
       const res = await fetch(`${API}/api/collateral/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           owner: walletAddress,
           animal_type: animalType,
@@ -60,8 +62,8 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
     setStatus(null);
     try {
       const res = await fetch(`${API}/api/loan/request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           borrower: walletAddress,
           collateral_id: parseInt(collateralId),

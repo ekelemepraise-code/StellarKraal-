@@ -12,12 +12,13 @@ interface Collateral {
   animal_type: string;
   count: number;
   appraised_value: number;
+  status?: string;
 }
 
 const STATUS_OPTIONS: string[] = [];
-const TYPE_OPTIONS = ["cattle", "goat", "sheep", "pig", "poultry"];
+const TYPE_OPTIONS = ['cattle', 'goat', 'sheep', 'pig', 'poultry'];
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function CollateralListContent() {
   const searchParams = useSearchParams();
@@ -33,8 +34,8 @@ function CollateralListContent() {
       .finally(() => setLoading(false));
   }, []);
 
-  const q = (searchParams.get("q") ?? "").toLowerCase();
-  const types = searchParams.getAll("type");
+  const q = (searchParams.get('q') ?? '').toLowerCase();
+  const types = searchParams.getAll('type');
 
   const filtered = items.filter((col) => {
     const matchesQuery =

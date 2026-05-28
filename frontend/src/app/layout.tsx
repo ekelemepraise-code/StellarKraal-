@@ -5,8 +5,8 @@ import OfflineBanner from "@/components/OfflineBanner";
 import { ToastProvider, ToastContainer } from "@/components/toast";
 
 export const metadata: Metadata = {
-  title: "StellarKraal — Livestock Micro-Lending",
-  description: "Livestock-backed micro-lending on Stellar/Soroban",
+  title: 'StellarKraal — Livestock Micro-Lending',
+  description: 'Livestock-backed micro-lending on Stellar/Soroban',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
