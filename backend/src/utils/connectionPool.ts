@@ -90,6 +90,15 @@ class ConnectionPool {
       this.release(conn);
     }
   }
+
+  /**
+   * Close all connections in the pool.
+   * Should be called during graceful shutdown.
+   */
+  close(): void {
+    this.pool = [];
+    this.inUse.clear();
+  }
 }
 
 export const pool = new ConnectionPool(config.POOL_MIN, config.POOL_MAX);
