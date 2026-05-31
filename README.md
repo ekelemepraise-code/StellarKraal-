@@ -9,6 +9,8 @@
 
 StellarKraal enables livestock-backed loans on the Stellar network. Animals are registered as collateral and borrowers can request loans against their appraised value, with on-chain loan lifecycle management and liquidation protection.
 
+See the [CHANGELOG](CHANGELOG.md) for release notes and upcoming changes.
+
 ## Architecture
 
 ```mermaid
