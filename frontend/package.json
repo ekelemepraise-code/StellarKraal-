@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest --passWithNoTests",
+    "test:contrast": "node ./scripts/contrast-audit.js",
     "test:a11y": "playwright test -c playwright-a11y.config.ts",
     "test:e2e": "playwright test -c playwright.e2e.config.ts",
     "type-check": "tsc --noEmit",
