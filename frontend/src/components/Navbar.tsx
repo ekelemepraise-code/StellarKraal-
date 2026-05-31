@@ -31,8 +31,8 @@ export default function Navbar() {
                 <Link
                   href={href}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg font-medium transition
-                    ${active ? 'bg-brown/10 text-brown' : 'text-brown/70 hover:text-brown hover:bg-brown/5'}`}
+                  className={`flex items-center gap-1.5 px-3 min-h-[44px] rounded-lg transition
+                    ${active ? 'bg-brown text-cream font-bold' : 'text-brown/70 font-medium hover:text-brown hover:bg-brown/5'}`}
                 >
                   <span aria-hidden="true">{icon}</span>
                   {label}
@@ -77,8 +77,8 @@ export default function Navbar() {
                   href={href}
                   aria-current={active ? 'page' : undefined}
                   onClick={() => setOpen(false)}
-                  className={`flex items-center gap-2 px-4 min-h-[44px] font-medium transition
-                    ${active ? 'bg-brown/10 text-brown' : 'text-brown/70 hover:bg-brown/5 hover:text-brown'}`}
+                  className={`flex items-center gap-2 px-4 min-h-[44px] transition
+                    ${active ? 'bg-brown text-cream font-bold' : 'text-brown/70 font-medium hover:bg-brown/5 hover:text-brown'}`}
                 >
                   <span aria-hidden="true">{icon}</span>
                   {label}
