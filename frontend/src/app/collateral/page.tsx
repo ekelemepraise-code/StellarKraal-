@@ -18,6 +18,13 @@ interface Collateral {
   status?: string;
 }
 
+interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
 const STATUS_OPTIONS: string[] = [];
 const TYPE_OPTIONS = ['cattle', 'goat', 'sheep', 'pig', 'poultry'];
 
@@ -25,30 +32,57 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 function CollateralListContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [items, setItems] = useState<Collateral[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta>({
+    total: 0,
+    page: 1,
+    limit: 10,
+    pages: 1,
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const page = parseInt(searchParams.get('page') ?? '1', 10);
+  const limit = parseInt(searchParams.get('limit') ?? '10', 10);
+  const q = searchParams.get('q') ?? '';
+  const types = searchParams.getAll('type');
+  const sort = searchParams.get('sort') ?? 'newest';
+
+  const fetchCollateral = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', page.toString());
+      params.set('limit', limit.toString());
+      if (q) params.set('search', q);
+      if (sort) params.set('sort', sort);
+      types.forEach((t) => params.append('type', t));
+
+      const res = await fetch(`${API}/api/collateral?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch collateral');
+
+      const data = await res.json();
+      setItems(Array.isArray(data.data) ? data.data : []);
+      if (data.meta) setMeta(data.meta);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, limit, q, sort, types]);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`${API}/api/collateral`)
-      .then((r) => r.json())
-      .then((data) => setItems(Array.isArray(data) ? data : []))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
-  }, []);
+    fetchCollateral();
+  }, [fetchCollateral]);
 
-  const q = (searchParams.get('q') ?? '').toLowerCase();
-  const types = searchParams.getAll('type');
-
-  const filtered = items.filter((col) => {
-    const matchesQuery =
-      !q ||
-      col.id.toLowerCase().includes(q) ||
-      col.owner.toLowerCase().includes(q) ||
-      col.animal_type.toLowerCase().includes(q);
-    const matchesType = types.length === 0 || types.includes(col.animal_type);
-    return matchesQuery && matchesType;
-  });
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', newPage.toString());
+    router.push(`?${params.toString()}`);
+  };
 
   const { page, limit, totalPages, setPage, setLimit, slice } = usePagination(filtered.length);
   const paginated = slice(filtered);
@@ -60,6 +94,12 @@ function CollateralListContent() {
         typeOptions={TYPE_OPTIONS}
         searchPlaceholder="Search by ID, owner, or animal type…"
       />
+
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <ul className="space-y-2">

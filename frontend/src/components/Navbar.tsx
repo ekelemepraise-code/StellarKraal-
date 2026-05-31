@@ -13,7 +13,26 @@ const NAV_SECTIONS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [walletDropdownOpen, setWalletDropdownOpen] = useState(false);
+  const walletDropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const { address, connect, disconnect } = useWallet();
+
+  // Close wallet dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (walletDropdownRef.current && !walletDropdownRef.current.contains(event.target as Node)) {
+        setWalletDropdownOpen(false);
+      }
+    }
+
+    if (walletDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [walletDropdownOpen]);
+
+  const truncatedAddress = address ? `${address.slice(0, 4)}…${address.slice(-4)}` : null;
 
   return (
     <nav
