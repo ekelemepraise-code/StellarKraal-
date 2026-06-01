@@ -1,5 +1,8 @@
 "use client";
 import { useState } from "react";
+import { colors } from "@/lib/design-tokens";
+import Card from "@/components/Card";
+import Spinner from "@/components/Spinner";
 
 interface Props {
   walletAddress: string;
@@ -23,11 +26,14 @@ export default function CollateralCard({ walletAddress }: Props) {
   }
 
   return (
-    <div className="bg-white dark:bg-[#1C1008] rounded-2xl p-6 shadow border border-transparent dark:border-gold/20 mb-4">
-      <h2 className="text-xl font-semibold text-brown dark:text-cream mb-3">Loan Lookup</h2>
+    <Card
+      className="mb-4"
+      header={<h2 className={`text-xl font-semibold ${colors.text.primary}`}>Loan Lookup</h2>}
+    >
       <div className="flex gap-2">
+        <label htmlFor="lookup-loan-id" className="sr-only">Loan ID</label>
         <input
-          className="border border-brown/30 dark:border-gold/40 rounded-lg px-3 py-2 flex-1 bg-white dark:bg-[#2A1A08] text-brown dark:text-cream placeholder:text-brown/40 dark:placeholder:text-cream/40 focus:outline-none focus:ring-2 focus:ring-gold dark:focus:ring-[#F5D060]"
+          className={`${colors.form.input} rounded-lg px-3 py-2 flex-1 ${colors.text.primary} ${colors.form.placeholder}`}
           placeholder="Loan ID"
           value={collateralId}
           onChange={(e) => setCollateralId(e.target.value)}
@@ -35,16 +41,21 @@ export default function CollateralCard({ walletAddress }: Props) {
         <button
           onClick={lookup}
           disabled={loading}
-          className="bg-brown dark:bg-gold text-cream dark:text-brown px-4 py-2 rounded-lg hover:opacity-90 transition disabled:opacity-50"
+          className={`${colors.primary.bg} ${colors.primary.text} px-4 py-2 rounded-lg ${colors.primary.hover} transition ${colors.interactive.disabled} ${colors.interactive.focus} flex items-center gap-2`}
         >
-          {loading ? "…" : "Fetch"}
+          {loading ? (
+            <>
+              <Spinner />
+              <span>Fetching…</span>
+            </>
+          ) : "Fetch"}
         </button>
       </div>
       {data && (
-        <pre className="mt-4 bg-cream dark:bg-[#2A1A08] text-brown dark:text-cream rounded-lg p-3 text-xs overflow-auto border border-brown/10 dark:border-gold/20">
+        <pre className={`mt-4 ${colors.background.secondary} rounded-lg p-3 text-xs overflow-auto ${colors.text.primary}`}>
           {JSON.stringify(data, null, 2)}
         </pre>
       )}
-    </div>
+    </Card>
   );
 }
