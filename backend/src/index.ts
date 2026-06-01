@@ -15,6 +15,7 @@ import {
   softDeleteLoan,
   restoreLoan,
   listDeletedLoans,
+  isCollateralPledged,
 } from "./db/store";
 import cors from "cors";
 import {
@@ -164,6 +165,12 @@ const loanRepaySchema = z.object({
 const loanRepaymentPreviewSchema = z.object({
   loan_id: z.number().int().nonnegative(),
   amount: z.number().int().positive(),
+});
+
+const createLoanSchema = z.object({
+  borrowerAddress: stellarPublicKeySchema,
+  collateralId: z.string().min(1),
+  requestedAmount: z.number().int().positive(),
 });
 
 type LoanPreviewShape = {
@@ -492,6 +499,47 @@ app.post(
       projected_health_factor_bps: projectedHealthFactorBps,
       fully_repaid: remainingBalance === 0,
     });
+  }),
+);
+
+// POST /api/loan/create
+app.post(
+  "/api/loan/create",
+  timeoutMiddleware(parseInt(config.TIMEOUT_WRITE_MS, 10)),
+  asyncHandler(async (req: Request, res: Response) => {
+    const validation = createLoanSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.errors });
+    }
+
+    const { borrowerAddress, collateralId, requestedAmount } = validation.data;
+
+    const collateral = getCollateral(collateralId);
+    if (!collateral) {
+      return res.status(404).json({ error: "Collateral not found" });
+    }
+
+    if (isCollateralPledged(collateralId)) {
+      return res.status(409).json({ error: "Collateral is already pledged to another loan" });
+    }
+
+    const maxLoanAmount = Math.floor(collateral.appraised_value * 0.8);
+    const loanAmount = Math.min(requestedAmount, maxLoanAmount);
+
+    const xdrTx = await buildContractTx(borrowerAddress, "request_loan", [
+      new Address(borrowerAddress).toScVal(),
+      nativeToScVal(collateralId, { type: "string" }),
+      nativeToScVal(BigInt(loanAmount), { type: "i128" }),
+    ]);
+
+    const loan = insertLoan({
+      id: randomUUID(),
+      borrower: borrowerAddress,
+      collateral_id: collateralId,
+      amount: loanAmount,
+    });
+
+    return res.status(201).json({ loan, xdr: xdrTx });
   }),
 );
 
