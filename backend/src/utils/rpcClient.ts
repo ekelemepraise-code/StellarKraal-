@@ -91,6 +91,7 @@ const getHealthBreaker = new CircuitBreaker(
       breaker: breaker.name,
       error: error.message,
     });
+    logger.warn(`RPC call failed: ${error.message}`, { breaker: breaker.name, error: error.message });
   });
 });
 
