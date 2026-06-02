@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { colors } from "@/lib/design-tokens";
 import Card from "@/components/Card";
 import Spinner from "@/components/Spinner";
@@ -51,6 +52,14 @@ export default function CollateralCard({ walletAddress }: Props) {
           ) : "Fetch"}
         </button>
       </div>
+      {collateralId && (
+        <Link
+          href={`/collateral/${collateralId}`}
+          className="mt-3 inline-block text-sm text-gold hover:underline"
+        >
+          View collateral detail →
+        </Link>
+      )}
       {data && (
         <pre className={`mt-4 ${colors.background.secondary} rounded-lg p-3 text-xs overflow-auto ${colors.text.primary}`}>
           {JSON.stringify(data, null, 2)}
