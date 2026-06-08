@@ -7,6 +7,9 @@
 
 <img width="1696" height="1034" alt="kraal" src="https://github.com/user-attachments/assets/7879ee2d-c347-42f6-92b0-1d7f0345bdf7" />
 
+<img width="1920" height="1080" alt="Screenshot from 2026-06-08 19-30-10" src="https://github.com/user-attachments/assets/c7d2183f-9971-47f0-8391-d14488a69ff0" />
+
+
 
 ## Project Overview
 
@@ -209,6 +212,7 @@ Key design decisions are documented as ADRs in [`docs/adr/`](docs/adr/).
 To add a new ADR, copy [`docs/adr/template.md`](docs/adr/template.md), increment the number, fill in all sections, and add a row to the table above.
 
 ---
+website https://kraal-bloom-connect.lovable.app/
 
 ## License
 
