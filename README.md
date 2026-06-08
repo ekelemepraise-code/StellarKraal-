@@ -6,9 +6,10 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/23b2988b-5df8-4ca8-8350-cb556a98002a" />
+
 
 <img width="1920" height="1080" alt="Screenshot from 2026-06-08 19-30-32" src="https://github.com/user-attachments/assets/88b1d3f6-ba00-483c-81c7-d38f633e82bb" />
-
 
 <img width="1920" height="1080" alt="Screenshot from 2026-06-08 19-30-16" src="https://github.com/user-attachments/assets/7298b819-0ad8-4ce4-ad77-868393feb72f" />
 
