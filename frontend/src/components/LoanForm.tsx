@@ -1,11 +1,12 @@
-"use client";
-import { useState } from "react";
-import { signTransaction } from "@/lib/freighterClient";
-import { submitSignedXdr } from "@/lib/stellarUtils";
-import { colors } from "@/lib/design-tokens";
-import Spinner from "@/components/Spinner";
-import { useToast } from "@/components/toast";
-import { Input, Select } from "@/components/ui";
+'use client';
+import { useState } from 'react';
+import { signTransaction } from '@/lib/freighterClient';
+import { submitSignedXdr } from '@/lib/stellarUtils';
+import { colors } from '@/lib/design-tokens';
+import Spinner from '@/components/Spinner';
+import { useToast } from '@/components/toast';
+import { Input, Select } from '@/components/ui';
+import { useFetchWithRateLimit } from '@/hooks/useFetchWithRateLimit';
 
 interface Props {
   walletAddress: string;
@@ -69,6 +70,7 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
   const [loanAmount, setLoanAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const { retryCountdown, isRateLimited, fetchWithLimit } = useFetchWithRateLimit();
 
   // ── Derived errors ──────────────────────────────────────────────────────────
 
@@ -100,7 +102,7 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
 
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/collateral/register`, {
+      const res = await fetchWithLimit(`${API}/api/collateral/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -112,17 +114,17 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Registration failed");
+        throw new Error(err.error || 'Registration failed');
       }
       const { xdr } = await res.json();
       const { signedTxXdr } = await signTransaction(xdr, {
-        network: process.env.NEXT_PUBLIC_NETWORK || "TESTNET",
+        network: process.env.NEXT_PUBLIC_NETWORK || 'TESTNET',
       });
       const result = await submitSignedXdr(signedTxXdr);
       toast.success(`Collateral registered! ID: ${result}`);
-      setStep("loan");
-    } catch (e: any) {
-      toast.error(e.message);
+      setStep('loan');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -134,7 +136,7 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
 
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/loan/request`, {
+      const res = await fetchWithLimit(`${API}/api/loan/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -145,16 +147,16 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Loan request failed");
+        throw new Error(err.error || 'Loan request failed');
       }
       const { xdr } = await res.json();
       const { signedTxXdr } = await signTransaction(xdr, {
-        network: process.env.NEXT_PUBLIC_NETWORK || "TESTNET",
+        network: process.env.NEXT_PUBLIC_NETWORK || 'TESTNET',
       });
       const result = await submitSignedXdr(signedTxXdr);
       toast.success(`Loan disbursed! Loan ID: ${result}`);
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Loan request failed');
     } finally {
       setLoading(false);
     }
@@ -171,7 +173,9 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
             onChange={(e) => setAnimalType(e.target.value)}
             disabled={loading}
           >
-            {ANIMAL_TYPES.map((a) => <option key={a}>{a}</option>)}
+            {ANIMAL_TYPES.map((a) => (
+              <option key={a}>{a}</option>
+            ))}
           </Select>
           <Input
             label="Count"
@@ -191,7 +195,8 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
           />
           <button
             onClick={registerCollateral}
-            disabled={loading}
+            disabled={loading || isRateLimited}
+            aria-disabled={loading || isRateLimited}
             className={`w-full ${colors.primary.bg} ${colors.primary.text} py-2.5 rounded-xl font-semibold ${colors.primary.hover} transition ${colors.interactive.disabled} ${colors.interactive.focus} flex items-center justify-center gap-2`}
           >
             {loading ? (
@@ -199,8 +204,10 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
                 <Spinner />
                 Processing…
               </>
+            ) : isRateLimited ? (
+              `Retry in ${retryCountdown}s`
             ) : (
-              "Register & Continue"
+              'Register & Continue'
             )}
           </button>
         </>
@@ -225,7 +232,8 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
           />
           <button
             onClick={requestLoan}
-            disabled={loading}
+            disabled={loading || isRateLimited}
+            aria-disabled={loading || isRateLimited}
             className={`w-full ${colors.secondary.bg} ${colors.secondary.text} py-2.5 rounded-xl font-semibold ${colors.secondary.hover} transition ${colors.interactive.disabled} ${colors.interactive.focus} flex items-center justify-center gap-2`}
           >
             {loading ? (
@@ -233,8 +241,10 @@ export default function LoanForm({ walletAddress, initialCollateralId }: Props) 
                 <Spinner />
                 Processing…
               </>
+            ) : isRateLimited ? (
+              `Retry in ${retryCountdown}s`
             ) : (
-              "Request Loan"
+              'Request Loan'
             )}
           </button>
         </>
