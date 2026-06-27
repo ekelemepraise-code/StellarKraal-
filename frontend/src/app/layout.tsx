@@ -6,6 +6,12 @@ import Navbar from "@/components/Navbar";
 export const metadata: Metadata = {
   title: "StellarKraal — Livestock Micro-Lending",
   description: "Livestock-backed micro-lending on Stellar/Soroban",
+  metadataBase: new URL("https://stellarkraal.io"),
+  openGraph: {
+    title: "StellarKraal — Livestock Micro-Lending",
+    description: "Livestock-backed micro-lending on Stellar/Soroban",
+    images: [{ url: "/og-banner.png" }],
+  },
 };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

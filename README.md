@@ -119,6 +119,19 @@ This repository uses a documented contribution workflow. See [CONTRIBUTING.md](C
 - [ ] Tests run successfully locally
 - [ ] Documentation updated when necessary
 
+## Lighthouse CI
+
+Performance thresholds are enforced in `frontend/lighthouserc.js`. The CI Lighthouse job runs against the built app and **fails the build** if any score falls below:
+
+| Category | Minimum Score |
+|---|---|
+| Performance | 80 |
+| Accessibility | 90 |
+| Best Practices | 90 |
+| SEO | 80 |
+
+Scores are reported as a GitHub Actions step summary.
+
 ## Development Scripts
 
 Run the following from the repository root:

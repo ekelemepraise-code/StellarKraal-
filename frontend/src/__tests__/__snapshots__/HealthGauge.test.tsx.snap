@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`HealthGauge matches snapshot (stable leaf component) 1`] = `
 <div
@@ -9,23 +9,23 @@ exports[`HealthGauge matches snapshot (stable leaf component) 1`] = `
   >
     <span
       class="font-semibold"
-      style="color: rgb(22, 163, 74);"
+      style="color: rgb(217, 119, 6);"
     >
       Healthy
     </span>
     <span
-      class="text-brown/60"
+      class="text-brown-600"
     >
       1.33
       x
     </span>
   </div>
   <div
-    class="w-full bg-brown/10 rounded-full h-4 overflow-hidden"
+    class="w-full bg-brown-100 rounded-full h-4 overflow-hidden"
   >
     <div
       class="h-4 rounded-full transition-all duration-500"
-      style="width: 67%; background-color: rgb(22, 163, 74);"
+      style="width: 67%; background-color: rgb(217, 119, 6);"
     />
   </div>
 </div>
