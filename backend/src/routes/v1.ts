@@ -351,6 +351,48 @@ v1Router.post("/alerts/webhook", async (req: Request, res: Response) => {
 
 export { v1Router, startTime, APP_VERSION };
 
+// ── Notification / Profile Settings ──────────────────────────────────────────
+
+const profileSettingsSchema = z.object({
+  healthFactorAlerts: z.boolean().optional(),
+  repaymentReminders: z.boolean().optional(),
+  liquidationWarnings: z.boolean().optional(),
+});
+
+type ProfileSettings = {
+  healthFactorAlerts: boolean;
+  repaymentReminders: boolean;
+  liquidationWarnings: boolean;
+};
+
+const profileSettingsStore = new Map<string, ProfileSettings>();
+
+const defaultProfileSettings = (): ProfileSettings => ({
+  healthFactorAlerts: true,
+  repaymentReminders: true,
+  liquidationWarnings: true,
+});
+
+// GET /profile/settings – load current settings (identified by wallet via JWT, or query param for dev)
+v1Router.get("/profile/settings", (req: Request, res: Response) => {
+  const wallet = (req.query.wallet as string) || "anonymous";
+  const settings = profileSettingsStore.get(wallet) ?? defaultProfileSettings();
+  res.json(settings);
+});
+
+// PATCH /profile/settings – save notification preferences
+v1Router.patch("/profile/settings", (req: Request, res: Response) => {
+  const wallet = (req.query.wallet as string) || "anonymous";
+  const validation = profileSettingsSchema.safeParse(req.body);
+  if (!validation.success) {
+    return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+  }
+  const existing = profileSettingsStore.get(wallet) ?? defaultProfileSettings();
+  const updated: ProfileSettings = { ...existing, ...validation.data };
+  profileSettingsStore.set(wallet, updated);
+  res.json(updated);
+});
+
 // ── User Settings ─────────────────────────────────────────────────────────────
 
 const settingsSchema = z.object({
