@@ -12,12 +12,7 @@ import NetworkMismatchBanner from "@/components/NetworkMismatchBanner";
 export const metadata: Metadata = {
   title: "StellarKraal — Livestock Micro-Lending",
   description: "Livestock-backed micro-lending on Stellar/Soroban",
-  metadataBase: new URL("https://stellarkraal.io"),
-  openGraph: {
-    title: "StellarKraal — Livestock Micro-Lending",
-    description: "Livestock-backed micro-lending on Stellar/Soroban",
-    images: [{ url: "/og-banner.png" }],
-  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

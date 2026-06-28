@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import CurrencySettings from "@/components/CurrencySettings";
+import NotificationPreferences from "@/components/NotificationPreferences";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -21,7 +22,10 @@ export default function SettingsPage() {
         <Link href="/" className="text-brown/60 hover:text-brown text-sm">← Home</Link>
         <h1 className="text-3xl font-bold text-brown">Settings</h1>
       </div>
-      <CurrencySettings />
+      <div className="space-y-8">
+        <CurrencySettings />
+        <NotificationPreferences />
+      </div>
     </main>
   );
 }
