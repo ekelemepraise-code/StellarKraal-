@@ -1,61 +1,69 @@
-"use client";
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
-import SearchFilterBar from "@/components/SearchFilterBar";
-import PageTransition from "@/components/PageTransition";
-import Card from "@/components/Card";
-import SkeletonLoanCard from "@/components/SkeletonLoanCard";
-import { badgeVariants } from "@/lib/animations";
+'use client';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { motion, useReducedMotion } from 'framer-motion';
+import SearchFilterBar from '@/components/SearchFilterBar';
+import PageTransition from '@/components/PageTransition';
+import Card from '@/components/Card';
+import SkeletonLoanCard from '@/components/SkeletonLoanCard';
+import Pagination from '@/components/Pagination';
+import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
+import { usePagination } from '@/hooks/usePagination';
+import { useLoans } from '@/hooks/useLoans';
+import { badgeVariants } from '@/lib/animations';
 
-interface Loan {
-  id: string;
-  borrower: string;
-  amount: number;
-  status: string;
-  createdAt: string;
-}
-
-const STATUS_OPTIONS = ["active", "repaid", "liquidated", "pending"];
+const STATUS_OPTIONS = ['active', 'repaid', 'liquidated', 'pending'];
 const TYPE_OPTIONS: string[] = [];
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const POLL_INTERVAL = 15_000;
 
 function LoanListContent() {
   const searchParams = useSearchParams();
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [loading, setLoading] = useState(true);
   const reduced = useReducedMotion();
+  const {
+    loans,
+    isLoading: loading,
+    error,
+    refresh,
+  } = useLoans({ refreshInterval: POLL_INTERVAL });
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`${API}/api/loans`)
-      .then((r) => r.json())
-      .then((data) => setLoans(Array.isArray(data) ? data : []))
-      .catch(() => setLoans([]))
-      .finally(() => setLoading(false));
-  }, []);
+    if (!loading && !error) setLastUpdated(new Date());
+  }, [loans, loading, error]);
 
-  const q = (searchParams.get("q") ?? "").toLowerCase();
-  const statuses = searchParams.getAll("status");
+  const q = (searchParams.get('q') ?? '').toLowerCase();
+  const statuses = searchParams.getAll('status');
+  const dateFrom = searchParams.get('dateFrom') ?? '';
+  const dateTo = searchParams.get('dateTo') ?? '';
 
   const filtered = loans.filter((loan) => {
     const matchesQuery =
-      !q ||
-      loan.id.toLowerCase().includes(q) ||
-      loan.borrower.toLowerCase().includes(q) ||
-      loan.status.toLowerCase().includes(q);
+      !q || loan.borrower.toLowerCase().includes(q) || loan.id.toLowerCase().includes(q);
     const matchesStatus = statuses.length === 0 || statuses.includes(loan.status);
-    return matchesQuery && matchesStatus;
+    const loanDate = loan.createdAt.slice(0, 10);
+    const matchesDateFrom = !dateFrom || loanDate >= dateFrom;
+    const matchesDateTo = !dateTo || loanDate <= dateTo;
+    return matchesQuery && matchesStatus && matchesDateFrom && matchesDateTo;
   });
+
+  const { page, limit, totalPages, setPage, setLimit, slice } = usePagination(filtered.length);
+  const paginated = slice(filtered);
 
   return (
     <div className="space-y-4">
-      <SearchFilterBar
-        statusOptions={STATUS_OPTIONS}
-        typeOptions={TYPE_OPTIONS}
-        searchPlaceholder="Search by loan ID, borrower, or status…"
-      />
+      <div className="flex items-center justify-between">
+        <SearchFilterBar
+          statusOptions={STATUS_OPTIONS}
+          typeOptions={TYPE_OPTIONS}
+          searchPlaceholder="Search by borrower address…"
+        />
+        {lastUpdated && (
+          <p className="text-xs text-brown-400 shrink-0 ml-4" aria-live="polite">
+            Updated {lastUpdated.toLocaleTimeString()}
+          </p>
+        )}
+      </div>
 
       {loading ? (
         <ul className="space-y-2">
@@ -65,43 +73,64 @@ function LoanListContent() {
             </li>
           ))}
         </ul>
+      ) : error ? (
+        <ErrorState message={error} onRetry={refresh} />
       ) : filtered.length === 0 ? (
-        <p className="text-brown-500 text-sm">No loans match your filters.</p>
+        <EmptyState
+          icon="📋"
+          heading={q || statuses.length > 0 ? 'No Loans Found' : 'No Loans Yet'}
+          message={
+            q || statuses.length > 0
+              ? 'Try adjusting your search or filters to find loans.'
+              : "You haven't created any loans yet. Register collateral and request a loan to get started."
+          }
+        />
       ) : (
-        <ul className="space-y-2">
-          {filtered.map((loan) => (
-            <li key={loan.id}>
-              <Card>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold text-brown-700 text-sm">Loan #{loan.id}</p>
-                    <p className="text-xs text-brown-500 truncate max-w-xs">{loan.borrower}</p>
+        <>
+          <ul className="space-y-2">
+            {paginated.map((loan) => (
+              <li key={loan.id}>
+                <Card>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-brown-700 text-sm">Loan #{loan.id}</p>
+                      <p className="text-xs text-brown-500 truncate max-w-xs">{loan.borrower}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-brown-700">
+                        {loan.amount.toLocaleString()}
+                      </p>
+                      <motion.span
+                        key={loan.status}
+                        variants={reduced ? undefined : badgeVariants}
+                        initial="initial"
+                        animate="animate"
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          loan.status === 'active'
+                            ? 'bg-success-light text-success-dark'
+                            : loan.status === 'repaid'
+                              ? 'bg-blue-100 text-blue-800'
+                              : loan.status === 'liquidated'
+                                ? 'bg-error-light text-error-dark'
+                                : 'bg-brown-100 text-brown-700'
+                        }`}
+                      >
+                        {loan.status}
+                      </motion.span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-brown-700">{loan.amount.toLocaleString()}</p>
-                    <motion.span
-                      key={loan.status}
-                      variants={reduced ? undefined : badgeVariants}
-                      initial="initial"
-                      animate="animate"
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        loan.status === "active"
-                          ? "bg-success-light text-success-dark"
-                          : loan.status === "repaid"
-                          ? "bg-blue-100 text-blue-800"
-                          : loan.status === "liquidated"
-                          ? "bg-error-light text-error-dark"
-                          : "bg-brown-100 text-brown-700"
-                      }`}
-                    >
-                      {loan.status}
-                    </motion.span>
-                  </div>
-                </div>
-              </Card>
-            </li>
-          ))}
-        </ul>
+                </Card>
+              </li>
+            ))}
+          </ul>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            limit={limit}
+            onPageChange={setPage}
+            onLimitChange={setLimit}
+          />
+        </>
       )}
     </div>
   );
