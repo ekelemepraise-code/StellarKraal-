@@ -3,10 +3,12 @@ import "./globals.css";
 import Link from "next/link";
 import OfflineBanner from "@/components/OfflineBanner";
 import { ToastProvider, ToastContainer } from "@/components/toast";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 
 export const metadata: Metadata = {
   title: "StellarKraal — Livestock Micro-Lending",
   description: "Livestock-backed micro-lending on Stellar/Soroban",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="bg-cream text-brown min-h-screen overflow-x-hidden px-4">
         <ToastProvider>
+          <ServiceWorkerRegistration />
           <OfflineBanner />
           <nav className="flex gap-4 px-6 py-3 text-sm border-b border-brown/10">
             <Link href="/" className="font-semibold text-brown hover:text-brown/70">StellarKraal</Link>
