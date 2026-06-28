@@ -12,6 +12,7 @@ import NetworkMismatchBanner from "@/components/NetworkMismatchBanner";
 export const metadata: Metadata = {
   title: "StellarKraal — Livestock Micro-Lending",
   description: "Livestock-backed micro-lending on Stellar/Soroban",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
