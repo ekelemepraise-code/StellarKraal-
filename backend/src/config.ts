@@ -6,10 +6,12 @@ const envSchema = z.object({
   CONTRACT_ID: z.string().min(1, "CONTRACT_ID is required"),
   NEXT_PUBLIC_NETWORK: z.enum(["testnet", "mainnet"]).default("testnet"),
   // Rate limiting (optional with defaults)
+  RATE_LIMIT_AUTH: z.string().regex(/^\d+$/, "RATE_LIMIT_AUTH must be a number").default("10"),
+  RATE_LIMIT_READ: z.string().regex(/^\d+$/, "RATE_LIMIT_READ must be a number").default("100"),
   RATE_LIMIT_GLOBAL: z.string().regex(/^\d+$/, "RATE_LIMIT_GLOBAL must be a number").default("60"),
   RATE_LIMIT_WRITE: z.string().regex(/^\d+$/, "RATE_LIMIT_WRITE must be a number").default("10"),
   // Request timeouts in milliseconds
-  TIMEOUT_GLOBAL_MS: z.string().regex(/^\d+$/, "TIMEOUT_GLOBAL_MS must be a number").default("30000"),
+  TIMEOUT_GLOBAL_MS: z.string().regex(/^\d+$/, "TIMEOUT_GLOBAL_MS must be a number").default("10000"),
   TIMEOUT_WRITE_MS: z.string().regex(/^\d+$/, "TIMEOUT_WRITE_MS must be a number").default("15000"),
   // Webhook secret
   WEBHOOK_SECRET: z.string().min(16, "WEBHOOK_SECRET must be at least 16 characters").optional(),
@@ -31,8 +33,8 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  const missing = parsed.error.issues.filter((i) => i.code === "invalid_type" && (i as any).received === "undefined");
-  const invalid = parsed.error.issues.filter((i) => !(i.code === "invalid_type" && (i as any).received === "undefined"));
+  const missing = parsed.error.issues.filter((i) => i.code === "invalid_type" && (i as { received?: string }).received === "undefined");
+  const invalid = parsed.error.issues.filter((i) => !(i.code === "invalid_type" && (i as { received?: string }).received === "undefined"));
 
   const lines: string[] = ["\n❌ Environment validation failed\n"];
   if (missing.length > 0) {
