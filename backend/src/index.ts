@@ -21,7 +21,6 @@ import {
   softDeleteLoan,
   restoreLoan,
   listDeletedLoans,
-  insertTransaction,
   listTransactions,
   getTransaction,
   updateCollateral,
@@ -494,6 +493,32 @@ app.post(
     const body = { xdr: xdrTx };
     setIdempotencyEntry(idempotencyKey, 200, body);
     res.json(body);
+  }),
+);
+
+// POST /api/loan/liquidate
+const loanLiquidateSchema = z.object({
+  borrower: stellarPublicKeySchema,
+  loan_id: z.number().int().nonnegative(),
+  amount: z.number().int().positive(),
+});
+
+app.post(
+  "/api/loan/liquidate",
+  timeoutMiddleware(parseInt(config.TIMEOUT_WRITE_MS, 10)),
+  asyncHandler(async (req: Request, res: Response) => {
+    const validation = loanLiquidateSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Validation failed", details: validation.error.issues });
+    }
+    const { borrower, loan_id, amount } = validation.data;
+    const xdrTx = await buildContractTx(borrower, "liquidate_loan", [
+      new Address(borrower).toScVal(),
+      nativeToScVal(BigInt(loan_id), { type: "u64" }),
+      nativeToScVal(BigInt(amount), { type: "i128" }),
+    ]);
+    fireWebhooks("loan.liquidated", { loanId: String(loan_id), borrower, amount, timestamp: Date.now() });
+    res.json({ xdr: xdrTx });
   }),
 );
 

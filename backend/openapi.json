@@ -837,6 +837,24 @@
         }
       }
     },
+    "headers": {
+      "RateLimit-Limit": {
+        "description": "Maximum number of requests allowed in the current window",
+        "schema": { "type": "integer", "example": 60 }
+      },
+      "RateLimit-Remaining": {
+        "description": "Number of requests remaining in the current window",
+        "schema": { "type": "integer", "example": 59 }
+      },
+      "RateLimit-Reset": {
+        "description": "Unix timestamp (seconds) when the rate limit window resets",
+        "schema": { "type": "integer", "example": 1751000000 }
+      },
+      "Retry-After": {
+        "description": "Seconds to wait before retrying (present on 429 responses only)",
+        "schema": { "type": "integer", "example": 60 }
+      }
+    },
     "responses": {
       "ValidationError": {
         "description": "Request validation failed",
