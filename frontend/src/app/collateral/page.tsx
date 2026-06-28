@@ -1,50 +1,41 @@
-"use client";
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import SearchFilterBar from "@/components/SearchFilterBar";
-import PageTransition from "@/components/PageTransition";
-import Card from "@/components/Card";
-import SkeletonCollateralCard from "@/components/SkeletonCollateralCard";
-
-interface Collateral {
-  id: string;
-  owner: string;
-  animal_type: string;
-  count: number;
-  appraised_value: number;
-}
+'use client';
+import { Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import SearchFilterBar from '@/components/SearchFilterBar';
+import PageTransition from '@/components/PageTransition';
+import Card from '@/components/Card';
+import SkeletonCollateralCard from '@/components/SkeletonCollateralCard';
+import EmptyState from '@/components/EmptyState';
+import ErrorState from '@/components/ErrorState';
+import Pagination from '@/components/Pagination';
+import { useCollateral } from '@/hooks/useCollateral';
 
 const STATUS_OPTIONS: string[] = [];
-const TYPE_OPTIONS = ["cattle", "goat", "sheep", "pig", "poultry"];
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const TYPE_OPTIONS = ['cattle', 'goat', 'sheep', 'pig', 'poultry'];
 
 function CollateralListContent() {
   const searchParams = useSearchParams();
-  const [items, setItems] = useState<Collateral[]>([]);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${API}/api/collateral`)
-      .then((r) => r.json())
-      .then((data) => setItems(Array.isArray(data) ? data : []))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false));
-  }, []);
+  const page = parseInt(searchParams.get('page') ?? '1', 10);
+  const limit = parseInt(searchParams.get('limit') ?? '10', 10);
+  const q = searchParams.get('q') ?? '';
+  const types = searchParams.getAll('type');
+  const sort = searchParams.get('sort') ?? 'newest';
 
-  const q = (searchParams.get("q") ?? "").toLowerCase();
-  const types = searchParams.getAll("type");
+  const {
+    items,
+    meta,
+    isLoading: loading,
+    error,
+    refresh,
+  } = useCollateral({ page, limit, search: q, sort, types });
 
-  const filtered = items.filter((col) => {
-    const matchesQuery =
-      !q ||
-      col.id.toLowerCase().includes(q) ||
-      col.owner.toLowerCase().includes(q) ||
-      col.animal_type.toLowerCase().includes(q);
-    const matchesType = types.length === 0 || types.includes(col.animal_type);
-    return matchesQuery && matchesType;
-  });
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('page', newPage.toString());
+    router.push(`?${params.toString()}`);
+  };
 
   return (
     <div className="space-y-4">
@@ -62,31 +53,55 @@ function CollateralListContent() {
             </li>
           ))}
         </ul>
-      ) : filtered.length === 0 ? (
-        <p className="text-brown-500 text-sm">No collateral matches your filters.</p>
+      ) : error ? (
+        <ErrorState message={error} onRetry={refresh} />
+      ) : items.length === 0 ? (
+        <EmptyState
+          icon="🐄"
+          heading={q || types.length > 0 ? 'No Collateral Found' : 'No Collateral Registered'}
+          message={
+            q || types.length > 0
+              ? 'Try adjusting your search or filters to find collateral.'
+              : 'No collateral has been registered yet. Register your livestock to get started.'
+          }
+        />
       ) : (
-        <ul className="space-y-2">
-          {filtered.map((col) => (
-            <li key={col.id}>
-              <Card>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold text-brown-700 text-sm capitalize">
-                      {col.animal_type} — {col.count} head
-                    </p>
-                    <p className="text-xs text-brown-500 truncate max-w-xs">{col.owner}</p>
+        <>
+          <ul className="space-y-2">
+            {items.map((col) => (
+              <li key={col.id}>
+                <Card>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-brown-700 text-sm capitalize">
+                        {col.animal_type} — {col.count} head
+                      </p>
+                      <p className="text-xs text-brown-500 truncate max-w-xs">{col.owner}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-brown-700">
+                        {col.appraised_value.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-brown-500">ID: {col.id}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-brown-700">
-                      {col.appraised_value.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-brown-500">ID: {col.id}</p>
-                  </div>
-                </div>
-              </Card>
-            </li>
-          ))}
-        </ul>
+                </Card>
+              </li>
+            ))}
+          </ul>
+          <Pagination
+            page={page}
+            totalPages={meta.pages}
+            limit={limit}
+            onPageChange={handlePageChange}
+            onLimitChange={(newLimit) => {
+              const params = new URLSearchParams(searchParams);
+              params.set('limit', newLimit.toString());
+              params.set('page', '1');
+              router.push(`?${params.toString()}`);
+            }}
+          />
+        </>
       )}
     </div>
   );

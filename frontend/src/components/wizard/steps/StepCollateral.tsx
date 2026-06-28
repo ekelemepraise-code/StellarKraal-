@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { useWizard, AnimalType, CollateralItem, makeItem } from "@/context/LoanWizardContext";
 import { signTransaction } from "@/lib/freighterClient";
 import { submitSignedXdr } from "@/lib/stellarUtils";
+import { invalidateCollateral } from "@/lib/api";
 import Spinner from "@/components/Spinner";
 
 const ANIMAL_TYPES: { value: AnimalType; label: string; emoji: string }[] = [
@@ -101,34 +102,25 @@ export default function StepCollateral({ walletAddress }: Props) {
     setField("loading", true);
     setField("error", null);
     try {
-      // Register each collateral in order and collect IDs
-      const registered: CollateralItem[] = [];
-      for (const item of collaterals) {
-        const res = await fetch(`${API}/api/collateral/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            owner: walletAddress,
-            animal_type: item.animalType,
-            count: parseInt(item.count),
-            appraised_value: parseInt(item.appraisedValue),
-          }),
-        });
-        if (!res.ok) throw new Error("Registration failed. Please try again.");
-        const { xdr } = await res.json();
-        const { signedTxXdr } = await signTransaction(xdr, {
-          network: process.env.NEXT_PUBLIC_NETWORK || "TESTNET",
-        });
-        const collateralId = await submitSignedXdr(signedTxXdr);
-        registered.push({ ...item, collateralId: String(collateralId) });
-      }
-
-      setCollaterals(registered);
-      // Sync legacy single-item fields for downstream steps
-      setField("collateralId", registered.map((r) => r.collateralId).join(","));
-      setField("animalType", registered[0].animalType);
-      setField("count", registered[0].count);
-      setField("appraisedValue", registered[0].appraisedValue);
+      const res = await fetch(`${API}/api/collateral/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          owner: walletAddress,
+          animal_type: animalType,
+          count: parseInt(count),
+          appraised_value: parseInt(appraisedValue),
+        }),
+      });
+      if (!res.ok) throw new Error("Registration failed. Please try again.");
+      const { xdr } = await res.json();
+      const { signedTxXdr } = await signTransaction(xdr, {
+        network: process.env.NEXT_PUBLIC_NETWORK || "TESTNET",
+      });
+      const collateralId = await submitSignedXdr(signedTxXdr);
+      // New collateral registered — drop cached collateral lists so they revalidate.
+      invalidateCollateral();
+      setField("collateralId", String(collateralId));
       nextStep();
     } catch (e: any) {
       setField("error", e.message || "Something went wrong.");
@@ -176,73 +168,35 @@ export default function StepCollateral({ walletAddress }: Props) {
               </svg>
             </div>
 
-            <div className="flex-1 space-y-3">
-              {/* Animal type */}
-              <div className="flex gap-2">
-                {ANIMAL_TYPES.map(({ value, label, emoji }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => updateItem(index, { animalType: value })}
-                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
-                      item.animalType === value
-                        ? "border-gold bg-gold/10 text-brown"
-                        : "border-brown/20 hover:border-brown/40 text-brown/60"
-                    }`}
-                  >
-                    {emoji} {label}
-                  </button>
-                ))}
-              </div>
+      <Input
+        label="Number of Animals"
+        type="number"
+        min="1"
+        placeholder="e.g. 5"
+        value={count}
+        onChange={(e) => setField("count", e.target.value)}
+        disabled={loading}
+      />
 
-              {/* Count + Value */}
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="Count"
-                  aria-label={`Item ${index + 1} count`}
-                  value={item.count}
-                  onChange={(e) => updateItem(index, { count: e.target.value })}
-                  className="w-24 border border-brown/30 rounded-lg px-3 py-2 text-sm text-brown placeholder-brown/40 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
-                />
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="Appraised value (stroops)"
-                  aria-label={`Item ${index + 1} appraised value`}
-                  value={item.appraisedValue}
-                  onChange={(e) => updateItem(index, { appraisedValue: e.target.value })}
-                  className="flex-1 border border-brown/30 rounded-lg px-3 py-2 text-sm text-brown placeholder-brown/40 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20"
-                />
-              </div>
-            </div>
-
-            {/* Remove button */}
-            {collaterals.length > 1 && (
-              <button
-                type="button"
-                onClick={() => removeItem(index)}
-                aria-label={`Remove item ${index + 1}`}
-                className="text-brown/30 hover:text-red-500 transition-colors mt-1"
-              >
-                ✕
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-
-      <button
-        type="button"
-        onClick={addItem}
-        className="text-sm text-brown/60 hover:text-brown border border-dashed border-brown/20 hover:border-brown/40 rounded-xl px-4 py-2 w-full transition"
-      >
-        + Add another collateral item
-      </button>
+      <div>
+        <Input
+          label="Total Appraised Value (stroops)"
+          type="number"
+          min="1"
+          placeholder="e.g. 10000000"
+          value={appraisedValue}
+          onChange={(e) => setField("appraisedValue", e.target.value)}
+          disabled={loading}
+        />
+        {count && appraisedValue && (
+          <p className="text-xs text-brown-400 mt-1">
+            ≈ {(parseInt(appraisedValue) / parseInt(count) / 10_000_000).toFixed(2)} XLM per head
+          </p>
+        )}
+      </div>
 
       {error && (
-        <div role="alert" className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
+        <div role="alert" className="bg-error-light border border-error rounded-xl px-4 py-3 text-error-dark text-sm">
           {error}
         </div>
       )}
