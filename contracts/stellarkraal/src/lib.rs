@@ -33,6 +33,15 @@ const PAUSED: Symbol = symbol_short!("PAUSED");   // pause state flag
 const PAUSE_EXP: Symbol = symbol_short!("PAUSEXP"); // pause expiry timestamp
 const ORACLES: Symbol = symbol_short!("ORACLES");
 
+// ── Contract constants ───────────────────────────────────────────────────────
+
+/// Maximum accepted oracle price (exclusive). Any price ≥ `MAX_PRICE` is
+/// rejected with [`Error::InvalidPrice`] to prevent overflow in the health
+/// factor calculation (`collateral_value * liq_thr`).
+/// Set to 10^18 — well above any realistic livestock valuation while leaving
+/// headroom for the `i128` multiplication inside `compute_health_factor_with_thr`.
+pub const MAX_PRICE: i128 = 1_000_000_000_000_000_000i128; // 10^18
+
 // ── Errors ───────────────────────────────────────────────────────────────────
 
 /// Contract-level errors returned by all public functions.
@@ -1004,13 +1013,18 @@ impl StellarKraal {
             return Err(Error::InvalidPrice);
         }
         
+        // Validate every submitted price individually before aggregating.
+        for price in prices.iter() {
+            if price <= 0 || price >= MAX_PRICE {
+                return Err(Error::InvalidPrice);
+            }
+        }
+
         let mut non_zero_prices = Vec::new(&env);
         let mut responses = 0;
         for price in prices.iter() {
-            if price > 0 {
-                non_zero_prices.push_back(price);
-                responses += 1;
-            }
+            non_zero_prices.push_back(price);
+            responses += 1;
         }
         
         let min_quorum = if oracles.len() >= 3 { 3 } else { oracles.len() };
@@ -1043,11 +1057,9 @@ impl StellarKraal {
         
         let mut flagged_count = 0;
         for price in prices.iter() {
-            if price > 0 {
-                let diff = if price > median { price - median } else { median - price };
-                if median > 0 && diff * 100 > median * 50 {
-                    flagged_count += 1;
-                }
+            let diff = if price > median { price - median } else { median - price };
+            if median > 0 && diff * 100 > median * 50 {
+                flagged_count += 1;
             }
         }
         

@@ -654,6 +654,77 @@ fn setup() -> (Env, Address, Address, Address, Address, Address) {
         assert!(repay_event.is_some());
     }
 
+    // ── price range validation (#667) ─────────────────────────────────────
+
+    /// Zero price must be rejected with InvalidPrice (#18).
+    #[test]
+    #[should_panic(expected = "#18")]
+    fn test_submit_oracle_prices_zero_price_rejected() {
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        init(&env, &cid, &admin, &oracle, &token, &treasury);
+        let client = StellarKraalClient::new(&env, &cid);
+        // 1 oracle registered by default; submit a zero price
+        let submitter = Address::generate(&env);
+        client.submit_oracle_prices(&submitter, &vec![&env, 0i128]);
+    }
+
+    /// Negative price must be rejected with InvalidPrice (#18).
+    #[test]
+    #[should_panic(expected = "#18")]
+    fn test_submit_oracle_prices_negative_price_rejected() {
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        init(&env, &cid, &admin, &oracle, &token, &treasury);
+        let client = StellarKraalClient::new(&env, &cid);
+        let submitter = Address::generate(&env);
+        client.submit_oracle_prices(&submitter, &vec![&env, -1i128]);
+    }
+
+    /// Price equal to MAX_PRICE must be rejected (boundary: price < MAX_PRICE is valid).
+    #[test]
+    #[should_panic(expected = "#18")]
+    fn test_submit_oracle_prices_max_price_rejected() {
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        init(&env, &cid, &admin, &oracle, &token, &treasury);
+        let client = StellarKraalClient::new(&env, &cid);
+        // Add 2 more oracles so we reach quorum of 3
+        client.add_oracle(&admin, &Address::generate(&env));
+        client.add_oracle(&admin, &Address::generate(&env));
+        let submitter = Address::generate(&env);
+        // MAX_PRICE itself must fail
+        client.submit_oracle_prices(&submitter, &vec![&env, MAX_PRICE, 100i128, 100i128]);
+    }
+
+    /// Price of MAX_PRICE - 1 (overflow boundary) must be accepted.
+    #[test]
+    fn test_submit_oracle_prices_just_below_max_accepted() {
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        init(&env, &cid, &admin, &oracle, &token, &treasury);
+        let client = StellarKraalClient::new(&env, &cid);
+        client.add_oracle(&admin, &Address::generate(&env));
+        client.add_oracle(&admin, &Address::generate(&env));
+        let submitter = Address::generate(&env);
+        let near_max = MAX_PRICE - 1;
+        // All three prices are valid (>0, <MAX_PRICE); quorum is met
+        let result = client.submit_oracle_prices(&submitter, &vec![&env, near_max, near_max, near_max]);
+        assert_eq!(result.median, near_max);
+        assert_eq!(result.responses, 3);
+    }
+
+    /// Each oracle is validated individually: one bad price in a multi-oracle
+    /// submission must reject the whole call.
+    #[test]
+    #[should_panic(expected = "#18")]
+    fn test_submit_oracle_prices_one_bad_price_rejects_all() {
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        init(&env, &cid, &admin, &oracle, &token, &treasury);
+        let client = StellarKraalClient::new(&env, &cid);
+        client.add_oracle(&admin, &Address::generate(&env));
+        client.add_oracle(&admin, &Address::generate(&env));
+        let submitter = Address::generate(&env);
+        // Second price is zero → should fail even though the others are valid
+        client.submit_oracle_prices(&submitter, &vec![&env, 100i128, 0i128, 200i128]);
+    }
+
     // ── proptests ─────────────────────────────────────────────────────────
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(256))]
