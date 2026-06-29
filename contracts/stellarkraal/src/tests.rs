@@ -654,6 +654,69 @@ fn setup() -> (Env, Address, Address, Address, Address, Address) {
         assert!(repay_event.is_some());
     }
 
+    #[test]
+    fn test_submit_oracle_prices_single_oracle() {
+        // quorum=1: single oracle submission uses that price as median
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        init(&env, &cid, &admin, &oracle, &token, &treasury);
+        let client = StellarKraalClient::new(&env, &cid);
+        // Remove the default oracle and re-add just one so oracle count = 1
+        client.remove_oracle(&admin, &oracle);
+        let sole = Address::generate(&env);
+        client.add_oracle(&admin, &sole);
+
+        let submitter = Address::generate(&env);
+        let result = client.submit_oracle_prices(&submitter, &vec![&env, 500i128]);
+        assert_eq!(result.median, 500);
+        assert_eq!(result.responses, 1);
+    }
+
+    #[test]
+    fn test_submit_oracle_prices_duplicate_prices() {
+        // Duplicate prices: [200, 200, 200] → median = 200
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        init(&env, &cid, &admin, &oracle, &token, &treasury);
+        let client = StellarKraalClient::new(&env, &cid);
+        client.add_oracle(&admin, &Address::generate(&env));
+        client.add_oracle(&admin, &Address::generate(&env));
+
+        let submitter = Address::generate(&env);
+        let result = client.submit_oracle_prices(&submitter, &vec![&env, 200i128, 200i128, 200i128]);
+        assert_eq!(result.median, 200);
+        assert_eq!(result.responses, 3);
+    }
+
+    #[test]
+    fn test_submit_oracle_prices_descending_order() {
+        // Prices submitted descending: [300, 200, 100] → sorted [100, 200, 300] → median = 200
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        init(&env, &cid, &admin, &oracle, &token, &treasury);
+        let client = StellarKraalClient::new(&env, &cid);
+        client.add_oracle(&admin, &Address::generate(&env));
+        client.add_oracle(&admin, &Address::generate(&env));
+
+        let submitter = Address::generate(&env);
+        let result = client.submit_oracle_prices(&submitter, &vec![&env, 300i128, 200i128, 100i128]);
+        assert_eq!(result.median, 200);
+        assert_eq!(result.responses, 3);
+    }
+
+    #[test]
+    fn test_submit_oracle_prices_all_equal() {
+        // All prices equal: [150, 150, 150] → median = 150
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        init(&env, &cid, &admin, &oracle, &token, &treasury);
+        let client = StellarKraalClient::new(&env, &cid);
+        client.add_oracle(&admin, &Address::generate(&env));
+        client.add_oracle(&admin, &Address::generate(&env));
+
+        let submitter = Address::generate(&env);
+        let result = client.submit_oracle_prices(&submitter, &vec![&env, 150i128, 150i128, 150i128]);
+        assert_eq!(result.median, 150);
+        assert_eq!(result.responses, 3);
+        assert_eq!(result.flagged_count, 0);
+    }
+
     // ── proptests ─────────────────────────────────────────────────────────
     proptest! {
         #![proptest_config(ProptestConfig::with_cases(256))]
