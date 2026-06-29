@@ -8,7 +8,7 @@ import { config } from "../config";
 import { pool } from "../utils/connectionPool";
 import { invalidateAll } from "../utils/appraisalCache";
 import { asyncHandler } from "../utils/asyncHandler";
-import { registerWebhook, getWebhooks, getDeliveryLogs } from "../webhooks";
+import { registerWebhook, getWebhooks, getDeliveryLogs, deleteWebhook } from "../webhooks";
 import { timeoutMiddleware } from "../middleware/timeout";
 import { writeLimiter } from "../middleware/rateLimit";
 import { deprecationHeadersWhen } from "../middleware/deprecation";
@@ -239,6 +239,15 @@ v1Router.get("/admin/webhooks", (_req: Request, res: Response) => {
 
 v1Router.get("/admin/webhooks/logs", (_req: Request, res: Response) => {
   res.json(getDeliveryLogs());
+});
+
+v1Router.delete("/webhooks/:id", (req: Request, res: Response) => {
+  const { id } = req.params;
+  const deleted = deleteWebhook(id as string);
+  if (!deleted) {
+    return res.status(404).json({ error: "Webhook not found", message: `No webhook with id '${id}'` });
+  }
+  res.status(204).send();
 });
 
 v1Router.post("/alerts/webhook", async (req: Request, res: Response) => {

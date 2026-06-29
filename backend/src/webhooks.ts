@@ -74,6 +74,16 @@ export function getWebhooks(): Omit<WebhookRegistration, "secret">[] {
 }
 
 /**
+ * Deregister a webhook by ID.
+ *
+ * @param id - The unique webhook ID returned at registration time.
+ * @returns `true` if the webhook was found and removed, `false` if not found.
+ */
+export function deleteWebhook(id: string): boolean {
+  return webhooks.delete(id);
+}
+
+/**
  * Retrieve the current webhook delivery log entries.
  *
  * @returns An array of delivery log entries for recent webhook attempts.
