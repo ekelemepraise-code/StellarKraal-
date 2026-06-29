@@ -2,7 +2,7 @@ use super::*;
 use soroban_sdk::{
     symbol_short, vec,
     testutils::{Address as _, Ledger},
-    Address, Env,
+    Address, Env, String,
 };
 use proptest::prelude::*;
 
@@ -43,6 +43,48 @@ fn setup() -> (Env, Address, Address, Address, Address, Address) {
         let (env, cid, admin, oracle, token, treasury) = setup();
         init(&env, &cid, &admin, &oracle, &token, &treasury);
         init(&env, &cid, &admin, &oracle, &token, &treasury);
+    }
+
+    #[test]
+    #[should_panic(expected = "#3")]
+    fn test_initialize_zero_admin_fails() {
+        let (env, cid, _admin, oracle, token, treasury) = setup();
+        let client = StellarKraalClient::new(&env, &cid);
+        let zero = Address::from_string(&String::from_str(&env, "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"));
+        client.initialize(&zero, &oracle, &token, &treasury, &6000u32, &8000u32);
+    }
+
+    #[test]
+    #[should_panic(expected = "#8")]
+    fn test_initialize_zero_ltv_fails() {
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        let client = StellarKraalClient::new(&env, &cid);
+        client.initialize(&admin, &oracle, &token, &treasury, &0u32, &8000u32);
+    }
+
+    #[test]
+    #[should_panic(expected = "#8")]
+    fn test_initialize_ltv_above_max_fails() {
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        let client = StellarKraalClient::new(&env, &cid);
+        client.initialize(&admin, &oracle, &token, &treasury, &9001u32, &9500u32);
+    }
+
+    #[test]
+    #[should_panic(expected = "#8")]
+    fn test_initialize_liq_below_ltv_fails() {
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        let client = StellarKraalClient::new(&env, &cid);
+        // liq_threshold (5000) < ltv (6000) → InvalidAmount
+        client.initialize(&admin, &oracle, &token, &treasury, &6000u32, &5000u32);
+    }
+
+    #[test]
+    fn test_initialize_valid_params_succeed() {
+        let (env, cid, admin, oracle, token, treasury) = setup();
+        let client = StellarKraalClient::new(&env, &cid);
+        // liq_threshold == ltv is the boundary case (allowed)
+        client.initialize(&admin, &oracle, &token, &treasury, &6000u32, &6000u32);
     }
 
     // ── register_livestock ────────────────────────────────────────────────

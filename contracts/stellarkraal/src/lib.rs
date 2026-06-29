@@ -15,8 +15,8 @@
 mod tests;
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Symbol,
-    Vec,
+    contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, String,
+    Symbol, Vec,
 };
 
 // ── Storage keys ────────────────────────────────────────────────────────────
@@ -196,15 +196,20 @@ impl StellarKraal {
     ///
     /// # Parameters
     /// - `admin`: Address that will have admin privileges (fee updates, pause).
+    ///   Must not be the all-zeros account (`GAAA…WHF`).
     /// - `oracle`: Address of the price oracle (reserved for future use).
     /// - `token`: SAC token address used for loan disbursements and repayments.
     /// - `treasury`: Address that receives origination and interest fees.
     /// - `ltv_bps`: Loan-to-value ratio in basis points (e.g. 6000 = 60 %).
+    ///   Must be in the range 1–9000 inclusive.
     /// - `liquidation_threshold_bps`: Health-factor threshold below which
-    ///   liquidation is permitted (e.g. 8000 = 80 %).
+    ///   liquidation is permitted (e.g. 8000 = 80 %). Must be ≥ `ltv_bps`.
     ///
     /// # Errors
     /// - [`Error::AlreadyInitialized`] if called more than once.
+    /// - [`Error::Unauthorized`] if `admin` is the zero address.
+    /// - [`Error::InvalidAmount`] if `ltv_bps` is 0 or > 9000, or if
+    ///   `liquidation_threshold_bps` < `ltv_bps`.
     ///
     /// # Security
     /// Requires auth from `admin`. Can only be called once.
@@ -219,6 +224,19 @@ impl StellarKraal {
     ) -> Result<(), Error> {
         if env.storage().instance().has(&ADMIN) {
             return Err(Error::AlreadyInitialized);
+        }
+        // Reject the all-zeros Stellar account as admin.
+        let zero = Address::from_string(&String::from_str(&env, "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"));
+        if admin == zero {
+            return Err(Error::Unauthorized);
+        }
+        // ltv_bps must be in (0, 9000].
+        if ltv_bps == 0 || ltv_bps > 9000 {
+            return Err(Error::InvalidAmount);
+        }
+        // Liquidation threshold must be at least as large as LTV.
+        if liquidation_threshold_bps < ltv_bps {
+            return Err(Error::InvalidAmount);
         }
         admin.require_auth();
         env.storage().instance().set(&ADMIN, &admin);

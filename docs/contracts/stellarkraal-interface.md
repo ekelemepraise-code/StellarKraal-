@@ -18,14 +18,18 @@ The contract manages livestock-backed loans with the following responsibilities:
 ### `initialize(env, admin, oracle, token, treasury, ltv_bps, liquidation_threshold_bps)`
 - Description: Set initial protocol parameters and default fee, treasury, loan, and price state.
 - Parameters:
-  - `admin` — admin address with permission to update protocol settings.
+  - `admin` — admin address with permission to update protocol settings. Must not be the all-zeros Stellar account.
   - `oracle` — authorized oracle address for price submissions.
   - `token` — token address used for SAC disbursements and repayments.
   - `treasury` — fee recipient address.
-  - `ltv_bps` — loan-to-value ratio in basis points (e.g. `6000` = 60%).
-  - `liquidation_threshold_bps` — liquidation health threshold in basis points.
+  - `ltv_bps` — loan-to-value ratio in basis points (e.g. `6000` = 60%). Must be in the range 1–9000 inclusive.
+  - `liquidation_threshold_bps` — liquidation health threshold in basis points. Must be ≥ `ltv_bps`.
 - Returns: `Result<(), Error>`.
 - State changes: stores admin, oracle, token, treasury, LTV, liquidation threshold, fee rates, close factor, interest rate model, liquidity tracking, TWAP defaults, and oracle validation parameters.
+- Errors:
+  - `AlreadyInitialized` (#2) if called more than once.
+  - `Unauthorized` (#3) if `admin` is the all-zeros account (`GAAA…WHF`).
+  - `InvalidAmount` (#8) if `ltv_bps` is 0 or > 9000, or if `liquidation_threshold_bps` < `ltv_bps`.
 
 ### `is_paused(env)`
 - Description: Query whether the contract is currently paused.
