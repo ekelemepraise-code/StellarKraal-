@@ -753,3 +753,101 @@ fn setup() -> (Env, Address, Address, Address, Address, Address) {
             assert_eq!(loan.outstanding, loan.principal);
         }
     }
+
+    // ── compute_health_factor_with_thr unit tests ─────────────────────────
+
+    fn make_loan(total_collateral_value: i128, outstanding: i128) -> LoanRecord {
+        let env = Env::default();
+        LoanRecord {
+            id: 1,
+            borrower: Address::generate(&env),
+            collateral_ids: soroban_sdk::Vec::new(&env),
+            total_collateral_value,
+            principal: outstanding,
+            outstanding,
+            status: LoanStatus::Active,
+        }
+    }
+
+    #[test]
+    fn test_hf_zero_collateral_returns_zero() {
+        let loan = make_loan(0, 1_000);
+        let result = StellarKraal::compute_health_factor_with_thr(&loan, 8000).unwrap();
+        assert_eq!(result, 0, "zero collateral must yield health factor 0");
+    }
+
+    #[test]
+    fn test_hf_zero_outstanding_returns_i128_max() {
+        let loan = make_loan(1_000_000, 0);
+        let result = StellarKraal::compute_health_factor_with_thr(&loan, 8000).unwrap();
+        assert_eq!(result, i128::MAX, "zero outstanding must yield i128::MAX");
+    }
+
+    #[test]
+    fn test_hf_collateral_exactly_at_threshold_returns_one() {
+        let outstanding: i128 = 800_000;
+        let collateral: i128 = 1_000_000;
+        let liq_thr: u32 = 8000;
+        let loan = make_loan(collateral, outstanding);
+        let result = StellarKraal::compute_health_factor_with_thr(&loan, liq_thr).unwrap();
+        assert_eq!(result, 10_000, "collateral exactly at threshold must return health factor 1.0 (10_000)");
+    }
+
+    #[test]
+    fn test_hf_healthy_position() {
+        let loan = make_loan(1_000_000, 600_000);
+        let result = StellarKraal::compute_health_factor_with_thr(&loan, 8000).unwrap();
+        assert_eq!(result, 13_333, "healthy loan should return correct scaled health factor");
+        assert!(result >= 10_000, "healthy position must have health factor >= 1.0");
+    }
+
+    #[test]
+    fn test_hf_undercollateralized_position() {
+        let loan = make_loan(500_000, 900_000);
+        let result = StellarKraal::compute_health_factor_with_thr(&loan, 8000).unwrap();
+        assert!(result < 10_000, "undercollateralized position must have health factor < 1.0");
+    }
+
+    #[test]
+    fn test_hf_overflow_safe_large_inputs() {
+        let collateral = i128::MAX / 20_000;
+        let outstanding = 1_000_000_000_000i128;
+        let loan = make_loan(collateral, outstanding);
+        let result = StellarKraal::compute_health_factor_with_thr(&loan, 8000);
+        assert!(result.is_ok(), "large but safe inputs must not return an error");
+        let hf = result.unwrap();
+        assert!(hf >= 10_000, "position with large collateral relative to debt must be healthy");
+    }
+
+    #[test]
+    fn test_hf_overflow_returns_error_on_overflow() {
+        let loan = make_loan(i128::MAX, i128::MAX);
+        let result = StellarKraal::compute_health_factor_with_thr(&loan, 8000);
+        assert!(result.is_err(), "numerator overflow must return Err(InvalidAmount)");
+    }
+
+    #[test]
+    fn test_hf_multi_collateral_aggregation() {
+        let col1: i128 = 600_000;
+        let col2: i128 = 400_000;
+        let total = col1 + col2;
+        let outstanding: i128 = 700_000;
+        let liq_thr: u32 = 8000;
+
+        let expected_numerator = total * liq_thr as i128;
+        let expected_denominator = outstanding * 10_000;
+        let expected_hf = (expected_numerator / expected_denominator) * 10_000;
+
+        let loan = make_loan(total, outstanding);
+        let result = StellarKraal::compute_health_factor_with_thr(&loan, liq_thr).unwrap();
+        assert_eq!(result, expected_hf, "multi-collateral aggregation must match manual formula");
+    }
+
+    #[test]
+    fn test_hf_different_thresholds_scale_proportionally() {
+        let loan_80 = make_loan(1_000_000, 600_000);
+        let loan_50 = make_loan(1_000_000, 600_000);
+        let hf_80 = StellarKraal::compute_health_factor_with_thr(&loan_80, 8000).unwrap();
+        let hf_50 = StellarKraal::compute_health_factor_with_thr(&loan_50, 5000).unwrap();
+        assert!(hf_80 > hf_50, "higher liquidation threshold must produce higher health factor");
+    }
