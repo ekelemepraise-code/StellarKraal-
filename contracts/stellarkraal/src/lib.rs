@@ -1043,13 +1043,18 @@ impl StellarKraal {
             return Err(Error::InvalidPrice);
         }
         
+        // Validate every submitted price individually before aggregating.
+        for price in prices.iter() {
+            if price <= 0 || price >= MAX_PRICE {
+                return Err(Error::InvalidPrice);
+            }
+        }
+
         let mut non_zero_prices = Vec::new(&env);
         let mut responses = 0;
         for price in prices.iter() {
-            if price > 0 {
-                non_zero_prices.push_back(price);
-                responses += 1;
-            }
+            non_zero_prices.push_back(price);
+            responses += 1;
         }
         
         let min_quorum = if oracles.len() >= 3 { 3 } else { oracles.len() };
@@ -1082,11 +1087,9 @@ impl StellarKraal {
         
         let mut flagged_count = 0;
         for price in prices.iter() {
-            if price > 0 {
-                let diff = if price > median { price - median } else { median - price };
-                if median > 0 && diff * 100 > median * 50 {
-                    flagged_count += 1;
-                }
+            let diff = if price > median { price - median } else { median - price };
+            if median > 0 && diff * 100 > median * 50 {
+                flagged_count += 1;
             }
         }
         
