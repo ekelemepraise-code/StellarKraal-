@@ -240,7 +240,3 @@ website https://kraal-bloom-connect.lovable.app/
 
 MIT © StellarKraal
 .
-.
-.
-.
-.
