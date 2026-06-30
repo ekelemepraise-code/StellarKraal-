@@ -27,7 +27,7 @@ fn setup() -> (Env, Address, Address, Address, Address, Address) {
 
     fn init(env: &Env, contract_id: &Address, admin: &Address, oracle: &Address, token: &Address, treasury: &Address) {
         let client = StellarKraalClient::new(env, contract_id);
-        client.initialize(admin, oracle, token, treasury, &6000u32, &8000u32);
+        client.initialize(admin, oracle, token, treasury, &6000u32, &8000u32, &1u32);
     }
 
     // ── initialize ────────────────────────────────────────────────────────

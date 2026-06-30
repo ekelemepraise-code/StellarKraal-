@@ -238,6 +238,7 @@ impl StellarKraal {
         treasury: Address,
         ltv_bps: u32,
         liquidation_threshold_bps: u32,
+        min_quorum: u32,
     ) -> Result<(), Error> {
         if env.storage().instance().has(&ADMIN) {
             return Err(Error::AlreadyInitialized);
@@ -249,6 +250,7 @@ impl StellarKraal {
         env.storage().instance().set(&TREASURY, &treasury);
         env.storage().instance().set(&LTV, &ltv_bps);
         env.storage().instance().set(&LIQ_THR, &liquidation_threshold_bps);
+        env.storage().instance().set(&MIN_QUORUM, &min_quorum);
         env.storage().instance().set(&ORIG_FEE, &50u32); // 0.5%
         env.storage().instance().set(&INT_FEE, &1000u32); // 10%
         env.storage().instance().set(&CLOSE_FACTOR, &5000u32); // 50%
@@ -289,15 +291,22 @@ impl StellarKraal {
     }
 
     // ── update_oracle ─────────────────────────────────────────────────────
-    /// Update the oracle address.
+    /// Update the oracle address and optionally the minimum quorum.
+    ///
+    /// # Parameters
+    /// - `new_oracle`: New oracle address to store.
+    /// - `new_min_quorum`: New minimum quorum. Pass `0` to leave unchanged.
     ///
     /// # Security
     /// Admin-only. Requires auth from `admin`.
-    pub fn update_oracle(env: Env, admin: Address, new_oracle: Address) -> Result<(), Error> {
+    pub fn update_oracle(env: Env, admin: Address, new_oracle: Address, new_min_quorum: u32) -> Result<(), Error> {
         Self::assert_initialized(&env)?;
         Self::assert_admin(&env, &admin)?;
         admin.require_auth();
         env.storage().instance().set(&ORACLE, &new_oracle);
+        if new_min_quorum > 0 {
+            env.storage().instance().set(&MIN_QUORUM, &new_min_quorum);
+        }
         env.events().publish((symbol_short!("Admin"), symbol_short!("OracleUpd")), new_oracle);
         Ok(())
     }
@@ -1057,7 +1066,7 @@ impl StellarKraal {
             responses += 1;
         }
         
-        let min_quorum = if oracles.len() >= 3 { 3 } else { oracles.len() };
+        let min_quorum: u32 = env.storage().instance().get(&MIN_QUORUM).unwrap_or(if oracles.len() >= 3 { 3 } else { oracles.len() });
         if responses < min_quorum {
             return Err(Error::InsufficientOracleQuorum);
         }
